@@ -1,0 +1,9 @@
+# Python dependencies required to run the cli-thinkatrip project
+google-antigravity>=0.1.7
+apscheduler>=3.11.3
+requests>=2.34.2
+pillow==10.2.0
+python-dotenv==1.0.1
+
+# Optional: install boto3 only if you want to use S3 upload support
+# boto3>=1.30.0
