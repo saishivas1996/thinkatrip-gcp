@@ -1,0 +1,24 @@
+{
+  "name": "thinkatrip",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "autoprefixer": "^10.5.4",
+    "lucide-react": "^1.31.0",
+    "next": "latest",
+    "next-auth": "beta",
+    "postcss": "^8.5.26",
+    "react": "latest",
+    "react-dom": "latest",
+    "tailwindcss": "^3.4.19"
+  },
+  "devDependencies": {
+    "@types/node": "26.2.0",
+    "@types/react": "19.2.18",
+    "typescript": "7.0.2"
+  }
+}
