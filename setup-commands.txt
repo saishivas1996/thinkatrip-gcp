@@ -1,0 +1,85 @@
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y curl git build-essential ufw
+
+# Create 2GB Swap Memory
+sudo fallocate -l 2G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+
+# Get the official NodeSource setup script for Node 20
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+
+# Install Node.js
+sudo apt install -y nodejs
+
+# Install PM2 globally
+sudo npm install -g pm2
+
+sudo apt install -y python3 python3-pip python3-venv
+
+sudo apt install -y postgresql postgresql-contrib nginx
+
+sudo apt install -y certbot python3-certbot-nginx
+
+sudo ufw allow OpenSSH
+sudo ufw allow 'Nginx Full'
+sudo ufw enable
+
+git clone <your-github-repo-url> ~/thinkatrip-gcp
+
+cd ~/thinkatrip-gcp
+
+# 1. Delete the corrupted modules, lockfile, and cache
+rm -rf node_modules package-lock.json .next
+
+# 2. Freshly install everything
+npm install
+
+# 3. Specifically update the CSS handlers to their most stable versions
+npm update postcss tailwindcss autoprefixer
+
+cd ~/thinkatrip-gcp
+
+# 1. Create a virtual environment named 'venv'
+python3 -m venv venv
+
+# 2. Activate the virtual environment
+source venv/bin/activate
+
+# 3. Upgrade pip and install FastAPI, Uvicorn, and required dependencies
+pip install --upgrade pip
+pip install fastapi uvicorn pydantic psycopg2-binary sqlalchemy python-dotenv
+
+# If you have a requirements.txt file in the repo, run:
+# pip install -r requirements.txt
+
+sudo nano /etc/nginx/sites-available/thinkatrip
+
+server {
+    listen 80;
+    server_name thinkatrip.in www.thinkatrip.in;
+
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+
+sudo ln -s /etc/nginx/sites-available/thinkatrip /etc/nginx/sites-enabled/
+sudo rm /etc/nginx/sites-enabled/default
+sudo nginx -t
+sudo systemctl restart nginx
+
+sudo certbot --nginx -d thinkatrip.in -d www.thinkatrip.in
+
+npm run build
+
+pm2 start npm --name "nextjs-frontend" -- run start
+pm2 start "uvicorn web_api:app --host 127.0.0.1 --port 8000" --name "fastapi-backend"
+pm2 save
