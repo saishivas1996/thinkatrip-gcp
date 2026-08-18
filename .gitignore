@@ -2,4 +2,4 @@
 .env
 cron.log
 *.log
-posts/*
+#posts/*
