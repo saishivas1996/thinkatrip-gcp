@@ -2400,3 +2400,137 @@ Packaging Carousel...
 Waiting for media container 18097116644636153 to be ready...
 Publishing to Instagram Feed...
 Successfully posted Carousel to Instagram Feed! ✅ Post ID: 17952745305250648
+/home/saishivas1996/thinkatrip-gcp/venv/lib/python3.10/site-packages/google/api_core/_python_version_support.py:255: FutureWarning: You are using a Python version (3.10.12) which Google will stop supporting in new releases of google.api_core once it reaches its end of life (2026-10-04). Please upgrade to the latest Python version, or at least Python 3.11, to continue receiving updates for google.api_core past that date.
+  warnings.warn(message, FutureWarning)
+2026-08-17 13:15:02,719 - ThinkatripSystem - INFO - 💾 PostgreSQL database connected and tables initialized.
+2026-08-17 13:15:02,719 - ThinkatripSystem - INFO - ⏰ Travel Content System awake. Processing automated publication queue...
+2026-08-17 13:15:02,770 - ThinkatripSystem - INFO - 🎨 Generating 3-Slide Carousel for Bhairahawa / Lumbini...
+2026-08-17 13:15:21,311 - ThinkatripSystem - ERROR - ❌ GCP Bucket Upload Failed: Project was not passed and could not be determined from the environment.
+2026-08-17 13:15:31,334 - ThinkatripSystem - ERROR - ❌ A critical error occurred in the workflow: HTTPSConnectionPool(host='api.imgbb.com', port=443): Max retries exceeded with url: /1/upload (Caused by NameResolutionError("HTTPSConnection(host='api.imgbb.com', port=443): Failed to resolve 'api.imgbb.com' ([Errno -3] Temporary failure in name resolution)"))
+Traceback (most recent call last):
+  File "/home/saishivas1996/thinkatrip-gcp/venv/lib/python3.10/site-packages/urllib3/connection.py", line 204, in _new_conn
+    sock = connection.create_connection(
+  File "/home/saishivas1996/thinkatrip-gcp/venv/lib/python3.10/site-packages/urllib3/util/connection.py", line 60, in create_connection
+    for res in socket.getaddrinfo(host, port, family, socket.SOCK_STREAM):
+  File "/usr/lib/python3.10/socket.py", line 955, in getaddrinfo
+    for res in _socket.getaddrinfo(host, port, family, type, proto, flags):
+socket.gaierror: [Errno -3] Temporary failure in name resolution
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/saishivas1996/thinkatrip-gcp/venv/lib/python3.10/site-packages/urllib3/connectionpool.py", line 788, in urlopen
+    response = self._make_request(
+  File "/home/saishivas1996/thinkatrip-gcp/venv/lib/python3.10/site-packages/urllib3/connectionpool.py", line 488, in _make_request
+    raise new_e
+  File "/home/saishivas1996/thinkatrip-gcp/venv/lib/python3.10/site-packages/urllib3/connectionpool.py", line 464, in _make_request
+    self._validate_conn(conn)
+  File "/home/saishivas1996/thinkatrip-gcp/venv/lib/python3.10/site-packages/urllib3/connectionpool.py", line 1106, in _validate_conn
+    conn.connect()
+  File "/home/saishivas1996/thinkatrip-gcp/venv/lib/python3.10/site-packages/urllib3/connection.py", line 759, in connect
+    self.sock = sock = self._new_conn()
+  File "/home/saishivas1996/thinkatrip-gcp/venv/lib/python3.10/site-packages/urllib3/connection.py", line 211, in _new_conn
+    raise NameResolutionError(self.host, self, e) from e
+urllib3.exceptions.NameResolutionError: HTTPSConnection(host='api.imgbb.com', port=443): Failed to resolve 'api.imgbb.com' ([Errno -3] Temporary failure in name resolution)
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/saishivas1996/thinkatrip-gcp/venv/lib/python3.10/site-packages/requests/adapters.py", line 696, in send
+    resp = conn.urlopen(
+  File "/home/saishivas1996/thinkatrip-gcp/venv/lib/python3.10/site-packages/urllib3/connectionpool.py", line 842, in urlopen
+    retries = retries.increment(
+  File "/home/saishivas1996/thinkatrip-gcp/venv/lib/python3.10/site-packages/urllib3/util/retry.py", line 543, in increment
+    raise MaxRetryError(_pool, url, reason) from reason  # type: ignore[arg-type]
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='api.imgbb.com', port=443): Max retries exceeded with url: /1/upload (Caused by NameResolutionError("HTTPSConnection(host='api.imgbb.com', port=443): Failed to resolve 'api.imgbb.com' ([Errno -3] Temporary failure in name resolution)"))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/saishivas1996/thinkatrip-gcp/agent_main.py", line 583, in <module>
+    asyncio.run(main())
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/saishivas1996/thinkatrip-gcp/agent_main.py", line 580, in main
+    await execute_daily_agent_run()
+  File "/home/saishivas1996/thinkatrip-gcp/agent_main.py", line 573, in execute_daily_agent_run
+    raise e
+  File "/home/saishivas1996/thinkatrip-gcp/agent_main.py", line 569, in execute_daily_agent_run
+    result_message = generate_and_post_to_instagram(deal_json_string)
+  File "/home/saishivas1996/thinkatrip-gcp/agent_main.py", line 551, in generate_and_post_to_instagram
+    deal_url = ig.upload_deal_image(deal, itinerary)
+  File "/home/saishivas1996/thinkatrip-gcp/agent_main.py", line 442, in upload_deal_image
+    return self._cloud_upload(file_path)
+  File "/home/saishivas1996/thinkatrip-gcp/agent_main.py", line 159, in _cloud_upload
+    else: raise e
+  File "/home/saishivas1996/thinkatrip-gcp/agent_main.py", line 150, in _cloud_upload
+    response = requests.post(
+  File "/home/saishivas1996/thinkatrip-gcp/venv/lib/python3.10/site-packages/requests/api.py", line 134, in post
+    return request("post", url, data=data, json=json, **kwargs)
+  File "/home/saishivas1996/thinkatrip-gcp/venv/lib/python3.10/site-packages/requests/api.py", line 71, in request
+    return session.request(method=method, url=url, **kwargs)
+  File "/home/saishivas1996/thinkatrip-gcp/venv/lib/python3.10/site-packages/requests/sessions.py", line 651, in request
+    resp = self.send(prep, **send_kwargs)
+  File "/home/saishivas1996/thinkatrip-gcp/venv/lib/python3.10/site-packages/requests/sessions.py", line 784, in send
+    r = adapter.send(request, **kwargs)
+  File "/home/saishivas1996/thinkatrip-gcp/venv/lib/python3.10/site-packages/requests/adapters.py", line 729, in send
+    raise ConnectionError(e, request=request)
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='api.imgbb.com', port=443): Max retries exceeded with url: /1/upload (Caused by NameResolutionError("HTTPSConnection(host='api.imgbb.com', port=443): Failed to resolve 'api.imgbb.com' ([Errno -3] Temporary failure in name resolution)"))
+/home/saishivas1996/thinkatrip-gcp/venv/lib/python3.10/site-packages/google/api_core/_python_version_support.py:255: FutureWarning: You are using a Python version (3.10.12) which Google will stop supporting in new releases of google.api_core once it reaches its end of life (2026-10-04). Please upgrade to the latest Python version, or at least Python 3.11, to continue receiving updates for google.api_core past that date.
+  warnings.warn(message, FutureWarning)
+2026-08-17 18:30:23,291 - ThinkatripSystem - INFO - 💾 PostgreSQL database connected and tables initialized.
+2026-08-17 18:30:23,292 - ThinkatripSystem - INFO - ⏰ Travel Content System awake. Processing automated publication queue...
+2026-08-17 18:30:24,541 - ThinkatripSystem - INFO - 🎨 Generating 3-Slide Carousel for Colombo...
+2026-08-17 18:30:38,770 - ThinkatripSystem - INFO - ☁️ Successfully backed up CMB_CCU_cover.jpg to GCP Bucket!
+2026-08-17 18:30:51,271 - ThinkatripSystem - INFO - ☁️ Successfully backed up CMB_CCU_itin.jpg to GCP Bucket!
+2026-08-17 18:31:05,776 - ThinkatripSystem - INFO - ☁️ Successfully backed up CMB_CCU_highlights.jpg to GCP Bucket!
+2026-08-17 18:31:10,775 - ThinkatripSystem - INFO - 🔗 Public URLs generated successfully.
+2026-08-17 18:32:00,786 - ThinkatripSystem - INFO - 📝 Recorded flight VI254 into PostgreSQL lookup registry.
+2026-08-17 18:32:00,786 - ThinkatripSystem - INFO - 🚀 Success! Instagram Carousel live on feed. Object ID: 18114431323941972
+2026-08-17 18:32:00,786 - ThinkatripSystem - INFO - 💤 Publication execution cycle finished.
+Uploading 3-Slide Carousel to Instagram... 📸
+Creating Carousel Slide 1 container...
+Waiting for media container 18097194182636153 to be ready...
+Creating Carousel Slide 2 container...
+Waiting for media container 18097194227636153 to be ready...
+Creating Carousel Slide 3 container...
+Waiting for media container 18097194254636153 to be ready...
+Packaging Carousel...
+Waiting for media container 18097194281636153 to be ready...
+Publishing to Instagram Feed...
+Successfully posted Carousel to Instagram Feed! ✅ Post ID: 18114431323941972
+/home/saishivas1996/thinkatrip-gcp/venv/lib/python3.10/site-packages/google/api_core/_python_version_support.py:255: FutureWarning: You are using a Python version (3.10.12) which Google will stop supporting in new releases of google.api_core once it reaches its end of life (2026-10-04). Please upgrade to the latest Python version, or at least Python 3.11, to continue receiving updates for google.api_core past that date.
+  warnings.warn(message, FutureWarning)
+2026-08-17 21:30:35,271 - ThinkatripSystem - INFO - 💾 PostgreSQL database connected and tables initialized.
+2026-08-17 21:30:35,272 - ThinkatripSystem - INFO - ⏰ Travel Content System awake. Processing automated publication queue...
+2026-08-17 21:30:37,298 - ThinkatripSystem - INFO - 🎨 Generating 3-Slide Carousel for Bhairahawa / Lumbini...
+2026-08-17 21:31:05,019 - ThinkatripSystem - INFO - ☁️ Successfully backed up BWA_HYD_cover.jpg to GCP Bucket!
+2026-08-17 21:31:25,524 - ThinkatripSystem - INFO - ☁️ Successfully backed up BWA_HYD_itin.jpg to GCP Bucket!
+2026-08-17 21:31:44,531 - ThinkatripSystem - INFO - ☁️ Successfully backed up BWA_HYD_highlights.jpg to GCP Bucket!
+2026-08-17 21:31:49,280 - ThinkatripSystem - INFO - 🔗 Public URLs generated successfully.
+2026-08-17 21:32:02,781 - ThinkatripSystem - ERROR - ❌ A critical error occurred in the workflow: Failed to create slide 1. Response: {'error': {'message': 'Timeout', 'type': 'OAuthException', 'code': -2, 'error_subcode': 2207003, 'is_transient': False, 'error_user_title': 'Timeout', 'error_user_msg': 'It takes too long to download the media.', 'fbtrace_id': 'AOKwi15-fvd2n0Oic4W-CXG'}}
+Uploading 3-Slide Carousel to Instagram... 📸
+Creating Carousel Slide 1 container...
+❌ Instagram API Error: Failed to create slide 1. Response: {'error': {'message': 'Timeout', 'type': 'OAuthException', 'code': -2, 'error_subcode': 2207003, 'is_transient': False, 'error_user_title': 'Timeout', 'error_user_msg': 'It takes too long to download the media.', 'fbtrace_id': 'AOKwi15-fvd2n0Oic4W-CXG'}}
+Traceback (most recent call last):
+  File "/home/saishivas1996/thinkatrip-gcp/agent_main.py", line 583, in <module>
+    asyncio.run(main())
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/saishivas1996/thinkatrip-gcp/agent_main.py", line 580, in main
+    await execute_daily_agent_run()
+  File "/home/saishivas1996/thinkatrip-gcp/agent_main.py", line 573, in execute_daily_agent_run
+    raise e
+  File "/home/saishivas1996/thinkatrip-gcp/agent_main.py", line 569, in execute_daily_agent_run
+    result_message = generate_and_post_to_instagram(deal_json_string)
+  File "/home/saishivas1996/thinkatrip-gcp/agent_main.py", line 557, in generate_and_post_to_instagram
+    post_id = poster.post_carousel(deal=deal, itinerary=itinerary, image_urls=[deal_url, itin_url, highlights_url])
+  File "/home/saishivas1996/thinkatrip-gcp/agent_main.py", line 526, in post_carousel
+    raise e
+  File "/home/saishivas1996/thinkatrip-gcp/agent_main.py", line 501, in post_carousel
+    if not container_id: raise Exception(f"Failed to create slide {i+1}. Response: {res}")
+Exception: Failed to create slide 1. Response: {'error': {'message': 'Timeout', 'type': 'OAuthException', 'code': -2, 'error_subcode': 2207003, 'is_transient': False, 'error_user_title': 'Timeout', 'error_user_msg': 'It takes too long to download the media.', 'fbtrace_id': 'AOKwi15-fvd2n0Oic4W-CXG'}}

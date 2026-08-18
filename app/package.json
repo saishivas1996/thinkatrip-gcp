@@ -8,8 +8,9 @@
   },
   "dependencies": {
     "next": "latest",
+    "next-auth": "beta",
     "react": "latest",
     "react-dom": "latest",
-    "next-auth": "beta"
+    "react-select": "^5.10.2"
   }
 }
