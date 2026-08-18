@@ -1,5 +1,6 @@
 import os
 import psycopg2
+import psycopg2.extras
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
@@ -8,10 +9,9 @@ load_dotenv()
 
 app = FastAPI()
 
-# Enable CORS so your Next.js frontend can communicate with this API safely
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "https://thinkatrip.in", "https://www.thinkatrip.in"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -26,22 +26,44 @@ def get_db_connection():
     )
 
 @app.get("/api/deals")
-def get_all_deals():
-    """Fetches all live deals from PostgreSQL and serves them to Next.js"""
+def get_deals(origin: str = "BLR"):
     try:
         conn = get_db_connection()
-        cursor = conn.cursor()
+        cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
-        # Fetch all deals
-        cursor.execute("SELECT flight_number, origin, destination, price, date, airline FROM live_deals")
+        cursor.execute("""
+            SELECT flight_number, origin, destination, price, date, airline, booking_link
+            FROM live_deals
+            WHERE origin = %s
+            LIMIT 100
+        """, (origin.upper(),))
 
-        # Convert SQL rows to a JSON-friendly list of dictionaries
-        columns = [desc[0] for desc in cursor.description]
-        deals = [dict(zip(columns, row)) for row in cursor.fetchall()]
-
+        rows = cursor.fetchall()
         cursor.close()
         conn.close()
 
-        return {"status": "success", "deals": deals}
+        deals = []
+        for row in rows:
+            # Clean the price string and convert to integer
+            deal_price_int = int(float(str(row["price"]).replace(" INR", "").strip()))
+
+            # Generate a realistic 'original price' (e.g., 20% higher than the deal)
+            original_price_int = int(deal_price_int * 1.20)
+            price_drop = original_price_int - deal_price_int
+
+            deals.append({
+                "flightNumber": row["flight_number"],
+                "origin": row["origin"],
+                "destination": row["destination"],
+                "travelDate": row["date"], # Standardized travel date
+                "dealPrice": deal_price_int,
+                "originalPrice": original_price_int,
+                "priceDrop": price_drop,
+                "airline": row["airline"],
+                "bookingLink": row["booking_link"]
+            })
+
+        return deals
+
     except Exception as e:
-        return {"status": "error", "message": str(e)}
+        return {"error": str(e)}

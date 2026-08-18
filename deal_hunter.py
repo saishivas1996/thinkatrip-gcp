@@ -7,7 +7,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DUFFEL_TOKEN = os.getenv("DUFFEL_ACCESS_TOKEN")
+# Travelpayouts Credentials
+TRAVELPAYOUTS_API_TOKEN = os.getenv("TRAVELPAYOUTS_API_TOKEN")
+TRAVELPAYOUTS_MARKER = os.getenv("TRAVELPAYOUTS_MARKER")
 
 # --- INDIAN HUBS (OUTBOUND ORIGINS) ---
 INDIAN_HUBS = {
@@ -23,44 +25,27 @@ INDIAN_HUBS = {
 
 # --- 87 MAJOR GLOBAL DESTINATIONS ---
 GLOBAL_DESTINATIONS = {
-    # Southeast & East Asia
     "DPS": "Bali", "HKT": "Phuket", "BKK": "Bangkok", "SIN": "Singapore", 
     "KUL": "Kuala Lumpur", "SGN": "Ho Chi Minh City", "HAN": "Hanoi", 
     "MNL": "Manila", "NRT": "Tokyo (Narita)", "HND": "Tokyo (Haneda)", 
     "KIX": "Osaka", "ICN": "Seoul", "TPE": "Taipei", "HKG": "Hong Kong",
     "PNH": "Phnom Penh", "CMB": "Colombo", "MLE": "Maldives", "KTM": "Kathmandu",
-    
-    # Middle East
     "DXB": "Dubai", "DOH": "Doha", "AUH": "Abu Dhabi", "SHJ": "Sharjah",
     "MCT": "Muscat", "KWI": "Kuwait City", "BAH": "Bahrain", "RUH": "Riyadh",
-    "JED": "Jeddah", "AMM": "Amman",
-
-    # Europe
-    "LHR": "London (Heathrow)", "CDG": "Paris", "AMS": "Amsterdam", "FRA": "Frankfurt",
-    "MAD": "Madrid", "BCN": "Barcelona", "FCO": "Rome", "MXP": "Milan",
-    "ZRH": "Zurich", "VIE": "Vienna", "CPH": "Copenhagen", "ARN": "Stockholm",
-    "OSL": "Oslo", "DUB": "Dublin", "LIS": "Lisbon", "ATH": "Athens",
+    "JED": "Jeddah", "AMM": "Amman", "LHR": "London (Heathrow)", "CDG": "Paris", 
+    "AMS": "Amsterdam", "FRA": "Frankfurt", "MAD": "Madrid", "BCN": "Barcelona", 
+    "FCO": "Rome", "MXP": "Milan", "ZRH": "Zurich", "VIE": "Vienna", "CPH": "Copenhagen", 
+    "ARN": "Stockholm", "OSL": "Oslo", "DUB": "Dublin", "LIS": "Lisbon", "ATH": "Athens",
     "IST": "Istanbul", "PRG": "Prague", "WAW": "Warsaw", "BRU": "Brussels",
-    "MUC": "Munich", "BER": "Berlin",
-
-    # North & Central America
-    "JFK": "New York", "LAX": "Los Angeles", "SFO": "San Francisco", 
-    "YYZ": "Toronto", "YVR": "Vancouver", "EWR": "Newark", "ORD": "Chicago",
-    "MIA": "Miami", "IAD": "Washington DC", "DFW": "Dallas", 
-    "YUL": "Montreal", "MEX": "Mexico City",
-
-    # Oceania
-    "SYD": "Sydney", "MEL": "Melbourne", "BNE": "Brisbane", "PER": "Perth",
-    "AKL": "Auckland", "CHC": "Christchurch", "NAN": "Nadi",
-
-    # Africa & Indian Ocean
-    "CPT": "Cape Town", "JNB": "Johannesburg", "NBO": "Nairobi", 
-    "ADD": "Addis Ababa", "CAI": "Cairo", "MRU": "Mauritius", 
-    "SEZ": "Seychelles", "LOS": "Lagos", "CMN": "Casablanca",
-
-    # South America
-    "GRU": "São Paulo", "GIG": "Rio de Janeiro", "EZE": "Buenos Aires", 
-    "BOG": "Bogotá", "SCL": "Santiago", "LIM": "Lima"
+    "MUC": "Munich", "BER": "Berlin", "JFK": "New York", "LAX": "Los Angeles", 
+    "SFO": "San Francisco", "YYZ": "Toronto", "YVR": "Vancouver", "EWR": "Newark", 
+    "ORD": "Chicago", "MIA": "Miami", "IAD": "Washington DC", "DFW": "Dallas", 
+    "YUL": "Montreal", "MEX": "Mexico City", "SYD": "Sydney", "MEL": "Melbourne", 
+    "BNE": "Brisbane", "PER": "Perth", "AKL": "Auckland", "CHC": "Christchurch", 
+    "NAN": "Nadi", "CPT": "Cape Town", "JNB": "Johannesburg", "NBO": "Nairobi", 
+    "ADD": "Addis Ababa", "CAI": "Cairo", "MRU": "Mauritius", "SEZ": "Seychelles", 
+    "LOS": "Lagos", "CMN": "Casablanca", "GRU": "São Paulo", "GIG": "Rio de Janeiro", 
+    "EZE": "Buenos Aires", "BOG": "Bogotá", "SCL": "Santiago", "LIM": "Lima"
 }
 
 def get_db_connection():
@@ -73,7 +58,7 @@ def get_db_connection():
     )
 
 def setup_database():
-    """Ensures the table exists and includes origin tracking."""
+    """Ensures the table exists and includes origin tracking & booking link[cite: 1]."""
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -89,9 +74,9 @@ def setup_database():
             );
         ''')
         
-        cursor.execute('''
-            ALTER TABLE live_deals ADD COLUMN IF NOT EXISTS origin VARCHAR(50);
-        ''')
+        # Ensure new columns exist for the updated architecture
+        cursor.execute('ALTER TABLE live_deals ADD COLUMN IF NOT EXISTS origin VARCHAR(50);')
+        cursor.execute('ALTER TABLE live_deals ADD COLUMN IF NOT EXISTS booking_link VARCHAR(500);')
         
         conn.commit()
         cursor.close()
@@ -101,37 +86,30 @@ def setup_database():
         print(f"❌ Database setup error: {e}")
 
 def search_route(origin_code, dest_code, travel_date):
-    """Queries the Duffel API for the cheapest economy ticket on a given route."""
-    url = "https://api.duffel.com/air/offer_requests"
-    headers = {
-        "Duffel-Version": "v2",
-        "Authorization": f"Bearer {DUFFEL_TOKEN}",
-        "Content-Type": "application/json"
-    }
+    """Queries the Travelpayouts API for the cheapest ticket and generates deep links."""
+    url = f"https://api.travelpayouts.com/v1/prices/cheap?origin={origin_code}&destination={dest_code}&depart_date={travel_date}&currency=INR"
     
-    payload = {
-        "data": {
-            "cabin_class": "economy",
-            "slices": [{"origin": origin_code, "destination": dest_code, "departure_date": travel_date}],
-            "passengers": [{"type": "adult"}]
-        }
+    headers = {
+        "x-access-token": TRAVELPAYOUTS_API_TOKEN
     }
     
     try:
-        response = requests.post(url, headers=headers, json=payload, timeout=15)
-        if response.status_code == 201:
-            offers = response.json().get('data', {}).get('offers', [])
-            if offers:
-                offers.sort(key=lambda x: float(x['total_amount']))
-                best_offer = offers[0]
+        response = requests.get(url, headers=headers, timeout=15)
+        data = response.json()
+        
+        if data.get('success') and data.get('data'):
+            dest_data = data['data'].get(dest_code)
+            if dest_data:
+                # Grab the first available deal (usually the cheapest in the payload)
+                best_offer = list(dest_data.values())[0]
                 
-                airline = best_offer['owner']['name']
-                price = f"{best_offer['total_amount']} {best_offer['total_currency']}"
+                airline = best_offer.get('airline', 'N/A')
+                price = str(best_offer.get('price'))
+                flight_num = str(best_offer.get('flight_number', ''))
+                full_flight_number = f"{airline}{flight_num}"
                 
-                segment = best_offer['slices'][0]['segments'][0]
-                marketing_carrier = segment['marketing_carrier']['iata_code']
-                flight_num = segment['marketing_carrier_flight_number']
-                full_flight_number = f"{marketing_carrier}{flight_num}"
+                # Automatically generate the monetized Aviasales affiliate deep link
+                booking_link = f"https://search.aviasales.com/flights/?origin_iata={origin_code}&destination_iata={dest_code}&depart_date={travel_date}&adults=1&children=0&infants=0&trip_class=0&marker={TRAVELPAYOUTS_MARKER}&locale=en"
                 
                 return {
                     "flight_number": full_flight_number,
@@ -139,7 +117,8 @@ def search_route(origin_code, dest_code, travel_date):
                     "destination": dest_code,
                     "price": price,
                     "date": travel_date,
-                    "airline": airline
+                    "airline": airline,
+                    "booking_link": booking_link
                 }
     except Exception as e:
         print(f"⚠️ Network exception searching {origin_code} -> {dest_code}: {e}")
@@ -147,29 +126,34 @@ def search_route(origin_code, dest_code, travel_date):
     return None
 
 def save_deal(deal):
-    """Upserts the deal into PostgreSQL."""
+    """Upserts the deal and monetized link into PostgreSQL."""
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
         
         cursor.execute('''
-            INSERT INTO live_deals (flight_number, origin, destination, price, date, airline)
-            VALUES (%s, %s, %s, %s, %s, %s)
+            INSERT INTO live_deals (flight_number, origin, destination, price, date, airline, booking_link)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (flight_number) 
-            DO UPDATE SET price = EXCLUDED.price, date = EXCLUDED.date, origin = EXCLUDED.origin;
+            DO UPDATE SET 
+                price = EXCLUDED.price, 
+                date = EXCLUDED.date, 
+                origin = EXCLUDED.origin,
+                booking_link = EXCLUDED.booking_link;
         ''', (
             deal['flight_number'], 
             deal['origin'], 
             deal['destination'], 
             deal['price'], 
             deal['date'], 
-            deal['airline']
+            deal['airline'],
+            deal['booking_link']
         ))
         
         conn.commit()
         cursor.close()
         conn.close()
-        print(f"💾 Saved Deal: {deal['origin']} ✈️ {deal['destination']} ({deal['flight_number']}) for {deal['price']}")
+        print(f"💾 Saved Deal: {deal['origin']} ✈️ {deal['destination']} ({deal['flight_number']}) for ₹{deal['price']}")
     except Exception as e:
         print(f"❌ Database insert error: {e}")
 
@@ -177,7 +161,7 @@ def run_deal_hunter():
     print("🚀 Starting Global Outbound Deal Hunter...")
     setup_database()
     
-    # Target dates: 30 days and 60 days out for varied deal discovery
+    # Target dates: 30 days and 60 days out[cite: 1]
     dates_to_check = [
         (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d"),
         (datetime.now() + timedelta(days=60)).strftime("%Y-%m-%d")
@@ -193,7 +177,7 @@ def run_deal_hunter():
                 if deal: 
                     save_deal(deal)
                 
-                # Critical: 1 second delay to avoid hitting Duffel API rate limits
+                # Critical: 1 second delay to avoid hitting API rate limits[cite: 1]
                 time.sleep(1)
 
 if __name__ == "__main__":
