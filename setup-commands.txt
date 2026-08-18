@@ -83,3 +83,26 @@ npm run build
 pm2 start npm --name "nextjs-frontend" -- run start
 pm2 start "uvicorn web_api:app --host 127.0.0.1 --port 8000" --name "fastapi-backend"
 pm2 save
+
+
+##ppostgrsql
+
+##Postgresql commands
+sudo -u postgres psql
+
+-- 1. Create the database matching your DB_NAME
+CREATE DATABASE thinkatrip_db;
+
+-- 2. Create the user matching your DB_USER and DB_PASS
+CREATE USER bot_user WITH LOGIN PASSWORD 'your_password_here';
+
+-- (If it says the role already exists, run this instead to update the password):
+ALTER USER bot_user WITH PASSWORD 'your_password_here';
+
+-- 3. Grant the user access to the database
+GRANT ALL PRIVILEGES ON DATABASE thinkatrip_db TO bot_user;
+
+-- 4. Exit the database prompt
+\q
+
+python deal_hunter.py
