@@ -4,7 +4,7 @@
 type AppRoutes = "/"
 type AppRouteHandlerRoutes = "/api/auth/[...nextauth]"
 type PageRoutes = never
-type LayoutRoutes = "/" | "/node_modules/next/dist/client/components/builtin" | "/node_modules/next/dist/esm/client/components/builtin"
+type LayoutRoutes = "/"
 type RedirectRoutes = never
 type RewriteRoutes = never
 type Routes = AppRoutes | PageRoutes | LayoutRoutes | RedirectRoutes | RewriteRoutes | AppRouteHandlerRoutes
@@ -13,8 +13,6 @@ type Routes = AppRoutes | PageRoutes | LayoutRoutes | RedirectRoutes | RewriteRo
 interface ParamMap {
   "/": {}
   "/api/auth/[...nextauth]": { "nextauth": string[]; }
-  "/node_modules/next/dist/client/components/builtin": {}
-  "/node_modules/next/dist/esm/client/components/builtin": {}
 }
 
 
@@ -22,8 +20,6 @@ export type ParamsOf<Route extends Routes> = ParamMap[Route]
 
 interface LayoutSlotMap {
   "/": never
-  "/node_modules/next/dist/client/components/builtin": never
-  "/node_modules/next/dist/esm/client/components/builtin": never
 }
 
 
