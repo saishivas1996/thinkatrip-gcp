@@ -6,23 +6,37 @@ interface Deal {
   flightNumber: string;
   origin: string;
   destination: string;
-  date: string;
-  price: string;
+  travelDate: string;
+  dealPrice: number;
+  originalPrice: number;
+  priceDrop: number;
   airline: string;
   bookingLink: string;
 }
 
 export default function HomePage() {
-  // --- 1. Custom Flight Search State ---
+  // --- 1. General Flight Search State ---
   const [searchOrigin, setSearchOrigin] = useState("BLR");
   const [searchDestination, setSearchDestination] = useState("DXB");
   const [departDate, setDepartDate] = useState("");
   const [passengers, setPassengers] = useState(1);
 
-  // --- 2. Deals Table State ---
+  // --- 2. Live Deals Table State ---
   const [deals, setDeals] = useState<Deal[]>([]);
   const [selectedOrigin, setSelectedOrigin] = useState("BLR");
   const [loadingDeals, setLoadingDeals] = useState(false);
+
+  // The 8 Main Indian Hubs
+  const INDIAN_ORIGINS = [
+    { code: "BLR", name: "Bengaluru" },
+    { code: "DEL", name: "Delhi" },
+    { code: "BOM", name: "Mumbai" },
+    { code: "HYD", name: "Hyderabad" },
+    { code: "MAA", name: "Chennai" },
+    { code: "CCU", name: "Kolkata" },
+    { code: "COK", name: "Kochi" },
+    { code: "VTZ", name: "Visakhapatnam" },
+  ];
 
   // Fetch curated deals from FastAPI backend
   useEffect(() => {
@@ -54,6 +68,21 @@ export default function HomePage() {
     window.open(searchUrl, "_blank");
   };
 
+  // Format YYYY-MM-DD to readable date
+  const formatTravelDate = (dateStr: string) => {
+    if (!dateStr) return "Flexible";
+    try {
+      const parsed = new Date(dateStr);
+      return parsed.toLocaleDateString("en-IN", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      });
+    } catch {
+      return dateStr;
+    }
+  };
+
   return (
     <main className="min-h-screen bg-slate-950 text-white p-4 sm:p-8">
       {/* Hero Header */}
@@ -67,7 +96,7 @@ export default function HomePage() {
       </header>
 
       {/* ============================================================ */}
-      {/* ✈️ GENERAL FLIGHT SEARCH BAR (Directly inside page.tsx)     */}
+      {/* ✈️ 1. GENERAL FLIGHT SEARCH BAR                             */}
       {/* ============================================================ */}
       <section className="w-full max-w-5xl mx-auto bg-slate-900/90 border border-slate-800 p-6 rounded-2xl shadow-2xl mb-12 backdrop-blur-md">
         <h2 className="text-lg font-bold text-orange-400 mb-4">
@@ -109,7 +138,7 @@ export default function HomePage() {
             />
           </div>
 
-          {/* Date */}
+          {/* Departure Date */}
           <div>
             <label className="block text-xs font-semibold text-slate-400 mb-1">
               DEPARTURE DATE
@@ -141,7 +170,7 @@ export default function HomePage() {
             </select>
           </div>
 
-          {/* Submit */}
+          {/* Submit Button */}
           <div>
             <button
               type="submit"
@@ -154,27 +183,28 @@ export default function HomePage() {
       </section>
 
       {/* ============================================================ */}
-      {/* 📊 CURATED LIVE DEALS SECTION                                */}
+      {/* 📊 2. CURATED LIVE DEALS (8 INDIAN HUBS)                    */}
       {/* ============================================================ */}
       <section className="w-full max-w-5xl mx-auto">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+        <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-6 gap-4">
           <div>
             <h2 className="text-2xl font-bold">Today's Cheapest Flight Deals</h2>
-            <p className="text-slate-400 text-sm">Automated daily price drops</p>
+            <p className="text-slate-400 text-sm">Automated daily price drops in INR</p>
           </div>
 
-          {/* Quick Origin Filter */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-400 uppercase tracking-wider font-semibold">
-              Origin:
+          {/* Origin Filter - 8 Hubs */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs text-slate-400 uppercase tracking-wider font-semibold w-full sm:w-auto">
+              Departing From:
             </span>
-            {["BLR", "DEL", "BOM", "HYD", "VTZ"].map((code) => (
+            {INDIAN_ORIGINS.map(({ code, name }) => (
               <button
                 key={code}
                 onClick={() => setSelectedOrigin(code)}
-                className={`px-3 py-1 text-xs rounded-md font-semibold transition ${
+                title={name}
+                className={`px-3 py-1.5 text-xs rounded-md font-bold transition-all ${
                   selectedOrigin === code
-                    ? "bg-orange-500 text-white"
+                    ? "bg-orange-500 text-white shadow-md shadow-orange-500/20"
                     : "bg-slate-800 text-slate-300 hover:bg-slate-700"
                 }`}
               >
@@ -190,23 +220,23 @@ export default function HomePage() {
             <thead>
               <tr className="border-b border-slate-800 text-slate-400 text-xs uppercase bg-slate-900/80">
                 <th className="p-4">Route</th>
-                <th className="p-4">Date</th>
+                <th className="p-4">Travel Date</th>
                 <th className="p-4">Airline</th>
-                <th className="p-4">Price</th>
+                <th className="p-4">Deal Price & Drop</th>
                 <th className="p-4 text-right">Action</th>
               </tr>
             </thead>
             <tbody>
               {loadingDeals ? (
                 <tr>
-                  <td colSpan={5} className="text-center p-8 text-slate-400">
-                    Loading freshest deals...
+                  <td colSpan={5} className="text-center p-12 text-slate-400">
+                    <span className="animate-pulse">Fetching the best flight deals...</span>
                   </td>
                 </tr>
               ) : deals.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="text-center p-8 text-slate-500">
-                    No deals found for {selectedOrigin}. Check back soon!
+                  <td colSpan={5} className="text-center p-12 text-slate-500">
+                    No deals currently cached for {selectedOrigin}. Check back soon!
                   </td>
                 </tr>
               ) : (
@@ -215,22 +245,45 @@ export default function HomePage() {
                     key={idx}
                     className="border-b border-slate-800/50 hover:bg-slate-800/40 transition"
                   >
-                    <td className="p-4 font-bold text-white">
-                      {deal.origin} → {deal.destination}
+                    {/* Route */}
+                    <td className="p-4 font-bold text-white text-base">
+                      {deal.origin} <span className="text-slate-500">→</span> {deal.destination}
                     </td>
-                    <td className="p-4 text-slate-400">{deal.date}</td>
-                    <td className="p-4 text-slate-300">{deal.airline || "Various"}</td>
-                    <td className="p-4 font-extrabold text-green-400">
-                      ₹{deal.price}
+
+                    {/* Travel Date */}
+                    <td className="p-4 text-slate-300 font-medium">
+                      {formatTravelDate(deal.travelDate)}
                     </td>
-                    <td className="p-4 text-right">
+
+                    {/* Airline */}
+                    <td className="p-4 text-slate-400">
+                      {deal.airline || "Various"}
+                    </td>
+
+                    {/* Price & Price Drop */}
+                    <td className="p-4">
+                      <div className="flex flex-col">
+                        <span className="text-xs text-slate-500 line-through">
+                          ₹{deal.originalPrice.toLocaleString("en-IN")}
+                        </span>
+                        <span className="font-extrabold text-green-400 text-lg">
+                          ₹{deal.dealPrice.toLocaleString("en-IN")}
+                        </span>
+                        <span className="text-xs font-bold text-orange-400">
+                          Drop: ₹{deal.priceDrop.toLocaleString("en-IN")} ↓
+                        </span>
+                      </div>
+                    </td>
+
+                    {/* Action */}
+                    <td className="p-4 text-right align-middle">
                       <a
-                        href={deal.bookingLink || `https://search.aviasales.com/flights/?origin_iata=${deal.origin}&destination_iata=${deal.destination}&depart_date=${deal.date}&marker=${process.env.NEXT_PUBLIC_TRAVELPAYOUTS_MARKER || "YOUR_MARKER_ID"}`}
+                        href={deal.bookingLink || "#"}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-block bg-orange-500 hover:bg-orange-600 text-white font-semibold px-4 py-1.5 rounded-lg text-xs transition"
+                        className="inline-block bg-orange-500 hover:bg-orange-600 text-white font-bold px-5 py-2 rounded-lg text-xs shadow-md transition transform hover:scale-105"
                       >
-                        Book Now
+                        Book Deal
                       </a>
                     </td>
                   </tr>
