@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 
 interface Deal {
+  id: string;
   flightNumber: string;
   origin: string;
   destination: string;
@@ -15,58 +16,79 @@ interface Deal {
 }
 
 export default function HomePage() {
-  // --- 1. Search State ---
-  const [searchOrigin, setSearchOrigin] = useState("BLR");
-  const [searchDestination, setSearchDestination] = useState("DXB");
-  const [departDate, setDepartDate] = useState("");
-  const [passengers, setPassengers] = useState(1);
-  const [preferredPlatform, setPreferredPlatform] = useState("ixigo"); // 'ixigo' or 'aviasales'
+  // --- 1. Authentication State (Simulating Dynamic Backend) ---
+  const [currentUser, setCurrentUser] = useState<{ username: string } | null>(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authMode, setAuthMode] = useState<"login" | "signup">("login");
+  const [authForm, setAuthForm] = useState({ username: "", password: "" });
 
-  // --- 2. Deals & UI State ---
+  // --- 2. Search & UI State ---
+  const [tripType, setTripType] = useState<"oneway" | "roundtrip">("oneway");
+  const [searchOrigin, setSearchOrigin] = useState("VTZ");
+  const [searchDestination, setSearchDestination] = useState("BLR");
+  const [departDate, setDepartDate] = useState("2026-08-20");
+  const [returnDate, setReturnDate] = useState("2026-08-21");
+  const [passengers, setPassengers] = useState(1);
+  const [travelClass, setTravelClass] = useState("e"); // 'e' for Economy
+  
+  // --- 3. Deals & Wishlist State ---
   const [deals, setDeals] = useState<Deal[]>([]);
-  const [selectedOrigin, setSelectedOrigin] = useState("BLR");
+  const [selectedOrigin, setSelectedOrigin] = useState("VTZ");
   const [loadingDeals, setLoadingDeals] = useState(false);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [savedDeals, setSavedDeals] = useState<string[]>([]); // Array of Deal IDs
 
   const INDIAN_ORIGINS = [
+    { code: "VTZ", name: "Visakhapatnam" },
     { code: "BLR", name: "Bengaluru" },
     { code: "DEL", name: "Delhi" },
     { code: "BOM", name: "Mumbai" },
     { code: "HYD", name: "Hyderabad" },
     { code: "MAA", name: "Chennai" },
-    { code: "CCU", name: "Kolkata" },
-    { code: "COK", name: "Kochi" },
-    { code: "VTZ", name: "Visakhapatnam" },
   ];
 
-  // Active Promo & Bank Offers List
-  const PROMO_OFFERS = [
+  const AIRLINE_COUPONS = [
     {
+      airline: "Ixigo Special",
       code: "IXIGOFLIGHT",
-      bank: "Instant Discount",
-      desc: "Get up to ₹1,200 off on domestic & international flights.",
-      validity: "Valid till Apr 30",
+      discount: "Flat ₹1,200 Off",
+      desc: "Valid on domestic & international flights.",
+      validity: "Valid till Aug 31",
     },
     {
+      airline: "IndiGo",
+      code: "6EGO",
+      discount: "Flat ₹750 Off",
+      desc: "Valid on domestic routes across all morning flights.",
+      validity: "Valid till Aug 31",
+    },
+    {
+      airline: "Air India",
+      code: "AIFLYNOW",
+      discount: "Up to 20% Off",
+      desc: "Special discount on international and domestic connections.",
+      validity: "Limited Period",
+    },
+    {
+      airline: "Credit Card Offer",
       code: "HDFCCC",
-      bank: "HDFC Bank Credit Cards",
-      desc: "Flat 10% off up to ₹1,500 on weekend getaways.",
-      validity: "Every Saturday & Sunday",
-    },
-    {
-      code: "ICICIFLEET",
-      bank: "ICICI Netbanking / Cards",
-      desc: "Save up to ₹1,000 on bookings above ₹5,000.",
-      validity: "Limited Period Offer",
-    },
-    {
-      code: "TRIPFIRST",
-      bank: "New User Special",
-      desc: "Zero convenience fees + extra ₹500 instant off.",
-      validity: "First Booking Only",
-    },
+      discount: "10% Instant Off",
+      desc: "Extra savings on weekends with specific bank cards.",
+      validity: "Weekend Only",
+    }
   ];
 
+  // Initialize Auth & Wishlist from Local Storage (Pre-Backend Setup)
+  useEffect(() => {
+    const storedUser = localStorage.getItem("thinkatrip_user");
+    if (storedUser) {
+      setCurrentUser(JSON.parse(storedUser));
+      const userSaves = localStorage.getItem(`saved_deals_${JSON.parse(storedUser).username}`);
+      if (userSaves) setSavedDeals(JSON.parse(userSaves));
+    }
+  }, []);
+
+  // Fetch Live Deals from FastAPI
   useEffect(() => {
     async function fetchDeals() {
       setLoadingDeals(true);
@@ -74,7 +96,12 @@ export default function HomePage() {
         const res = await fetch(`/api/deals?origin=${selectedOrigin}`);
         const data = await res.json();
         if (Array.isArray(data)) {
-          setDeals(data);
+          // Map backend data to include a unique ID for saving
+          const formattedDeals = data.map((d, i) => ({
+            ...d,
+            id: `${d.origin}-${d.destination}-${d.travelDate}-${i}`
+          }));
+          setDeals(formattedDeals);
         } else {
           setDeals([]);
         }
@@ -88,21 +115,68 @@ export default function HomePage() {
     fetchDeals();
   }, [selectedOrigin]);
 
-  // Handle Flight Search redirection (Ixigo vs Aviasales)
-  const handleFlightSearch = (e: React.FormEvent) => {
+  // Handle Authentication Submission
+  const handleAuthSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const marker = process.env.NEXT_PUBLIC_TRAVELPAYOUTS_MARKER || "YOUR_MARKER";
+    if (!authForm.username || !authForm.password) return alert("Please enter credentials");
     
-    let searchUrl = "";
-    if (preferredPlatform === "ixigo") {
-      // Ixigo partner deep link format
-      searchUrl = `https://www.ixigo.com/search/flights?from=${searchOrigin.toUpperCase()}&to=${searchDestination.toUpperCase()}&date=${departDate.replace(/-/g, '')}&adults=${passengers}&class=e`;
-    } else {
-      // Aviasales deep link format
-      searchUrl = `https://search.aviasales.com/flights/?origin_iata=${searchOrigin.toUpperCase()}&destination_iata=${searchDestination.toUpperCase()}&depart_date=${departDate}&adults=${passengers}&marker=${marker}&locale=en`;
+    // In a dynamic app, this sends a POST to FastAPI. For now, it saves locally.
+    const userData = { username: authForm.username };
+    localStorage.setItem("thinkatrip_user", JSON.stringify(userData));
+    
+    // Simulate user database creation
+    if (authMode === "signup") {
+      localStorage.setItem(`user_db_${authForm.username}`, JSON.stringify(authForm));
     }
 
+    setCurrentUser(userData);
+    setShowAuthModal(false);
+    setAuthForm({ username: "", password: "" });
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("thinkatrip_user");
+    setCurrentUser(null);
+    setSavedDeals([]);
+  };
+
+  // Handle Wishlist Toggle
+  const toggleSaveDeal = (dealId: string) => {
+    if (!currentUser) return setShowAuthModal(true);
+    
+    let updatedSaves = [...savedDeals];
+    if (updatedSaves.includes(dealId)) {
+      updatedSaves = updatedSaves.filter(id => id !== dealId);
+    } else {
+      updatedSaves.push(dealId);
+    }
+    setSavedDeals(updatedSaves);
+    localStorage.setItem(`saved_deals_${currentUser.username}`, JSON.stringify(updatedSaves));
+  };
+
+  // Ixigo Affiliate Search Redirect
+  const handleIxigoSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const formattedDate = departDate ? departDate.replace(/-/g, '') : '';
+    const formattedReturn = returnDate && tripType === 'roundtrip' ? returnDate.replace(/-/g, '') : '';
+    
+    // Ixigo Affiliate Tracking URL format
+    let searchUrl = `https://www.ixigo.com/search/flights?from=${searchOrigin.toUpperCase()}&to=${searchDestination.toUpperCase()}&date=${formattedDate}&adults=${passengers}&class=${travelClass}`;
+    
+    if (tripType === "roundtrip") {
+      searchUrl += `&returnDate=${formattedReturn}`;
+    }
+    
+    // Append your affiliate tracking parameters here when provided by EarnKaro/Ixigo
+    // searchUrl += `&affiliate=YOUR_AFFILIATE_ID`;
+    
     window.open(searchUrl, "_blank");
+  };
+
+  const handleSwapAirports = () => {
+    const temp = searchOrigin;
+    setSearchOrigin(searchDestination);
+    setSearchDestination(temp);
   };
 
   const copyToClipboard = (code: string) => {
@@ -112,282 +186,212 @@ export default function HomePage() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-100 selection:bg-orange-500 selection:text-white">
+    <main className="min-h-screen bg-[#0b0f19] text-slate-100 font-sans selection:bg-orange-500 selection:text-white">
       
-      {/* Top Navbar */}
-      <nav className="border-b border-slate-800 bg-slate-900/50 backdrop-blur-md sticky top-0 z-50 px-6 py-4 flex justify-between items-center">
-        <div className="flex items-center gap-2">
-          <span className="text-2xl font-black tracking-tighter text-orange-500">Think<span className="text-white">A</span>Trip</span>
-          <span className="text-xs bg-orange-500/10 text-orange-400 font-semibold px-2 py-0.5 rounded-full border border-orange-500/20">Live Deals Hub</span>
+      {/* 🚀 Navbar */}
+      <nav className="border-b border-slate-800/80 bg-[#0f172a]/90 backdrop-blur-md sticky top-0 z-50 px-4 sm:px-8 py-4 flex justify-between items-center shadow-lg">
+        <div className="flex items-center gap-3">
+          <span className="text-2xl font-black tracking-tight text-orange-500 flex items-center gap-1.5">
+            <span>✈️</span> Think<span className="text-white">A</span>Trip
+          </span>
         </div>
-        <div className="text-xs text-slate-400 font-medium hidden sm:block">
-          Powered by <span className="text-slate-200 font-bold">Ixigo & Global Aggregators</span>
+        
+        <div className="flex items-center gap-4">
+          <span className="text-xs font-semibold text-slate-300 hidden md:flex items-center gap-1.5">
+            <span>🛡️</span> Hassle-Free Bookings
+          </span>
+          <span className="text-xs font-semibold text-slate-300 hidden md:flex items-center gap-1.5 mr-4">
+            <span>📞</span> 24x7 Support
+          </span>
+
+          {currentUser ? (
+            <div className="flex items-center gap-3 bg-slate-900 border border-slate-700 px-3 py-1.5 rounded-full">
+              <span className="text-xs font-bold text-orange-400">👋 {currentUser.username}</span>
+              <div className="w-px h-4 bg-slate-700"></div>
+              <button onClick={handleLogout} className="text-xs font-semibold text-slate-400 hover:text-white transition">Logout</button>
+            </div>
+          ) : (
+            <button 
+              onClick={() => setShowAuthModal(true)}
+              className="bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold px-4 py-2 rounded-full transition shadow-md shadow-orange-500/20"
+            >
+              Sign In
+            </button>
+          )}
         </div>
       </nav>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
         
-        {/* Hero Search Section */}
-        <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-900/80 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl mb-10 relative overflow-hidden">
-          <div className="absolute top-0 right-0 -mt-12 -mr-12 w-64 h-64 bg-orange-500/10 rounded-full blur-3xl pointer-events-none"></div>
+        {/* ✈️ Booking Engine (Ixigo Integrated) */}
+        <div className="bg-gradient-to-br from-[#111827] via-[#1e1b4b]/40 to-[#111827] border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl mb-10 relative overflow-hidden">
           
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-                Where do you want to fly?
-              </h1>
-              <p className="text-slate-400 text-sm mt-1">Compare live airfares across top booking platforms instantly.</p>
-            </div>
-
-            {/* Platform Selector Tabs */}
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 border-b border-slate-800 pb-4 gap-4">
             <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800">
-              <button
-                type="button"
-                onClick={() => setPreferredPlatform("ixigo")}
-                className={`px-4 py-1.5 text-xs font-bold rounded-lg transition ${
-                  preferredPlatform === "ixigo" ? "bg-orange-500 text-white shadow-lg" : "text-slate-400 hover:text-white"
-                }`}
-              >
-                Book via Ixigo
-              </button>
-              <button
-                type="button"
-                onClick={() => setPreferredPlatform("aviasales")}
-                className={`px-4 py-1.5 text-xs font-bold rounded-lg transition ${
-                  preferredPlatform === "aviasales" ? "bg-orange-500 text-white shadow-lg" : "text-slate-400 hover:text-white"
-                }`}
-              >
-                Global Aggregator
-              </button>
+              <button type="button" onClick={() => setTripType("oneway")} className={`px-5 py-2 text-xs font-bold rounded-lg transition ${tripType === "oneway" ? "bg-orange-500 text-white" : "text-slate-400 hover:text-white"}`}>One Way</button>
+              <button type="button" onClick={() => setTripType("roundtrip")} className={`px-5 py-2 text-xs font-bold rounded-lg transition ${tripType === "roundtrip" ? "bg-orange-500 text-white" : "text-slate-400 hover:text-white"}`}>Round Trip</button>
+            </div>
+            <div className="text-xs text-orange-400 font-semibold bg-orange-500/10 px-3 py-1.5 rounded-lg border border-orange-500/20">
+              ✨ Guaranteed Best Fares & Instant Cashbacks
             </div>
           </div>
 
-          <form onSubmit={handleFlightSearch} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
-            <div>
-              <label className="block text-xs font-semibold text-slate-400 mb-1">FROM (Airport)</label>
-              <input
-                type="text"
-                value={searchOrigin}
-                maxLength={3}
-                onChange={(e) => setSearchOrigin(e.target.value.toUpperCase())}
-                placeholder="BLR"
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-center font-mono font-bold focus:outline-none focus:border-orange-500 uppercase text-white"
-                required
-              />
+          <form onSubmit={handleIxigoSearch} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+            
+            <div className="md:col-span-4 grid grid-cols-2 relative bg-slate-950 border border-slate-800 rounded-2xl p-2 gap-2">
+              <div className="p-2">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">From</label>
+                <input type="text" value={searchOrigin} onChange={(e) => setSearchOrigin(e.target.value.toUpperCase())} maxLength={3} className="w-full bg-transparent font-mono text-xl font-extrabold text-white focus:outline-none uppercase" required />
+              </div>
+              <button type="button" onClick={handleSwapAirports} className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 bg-slate-900 border border-slate-700 w-8 h-8 rounded-full flex items-center justify-center text-orange-400 hover:bg-orange-500 hover:text-white transition shadow-md z-10">⇄</button>
+              <div className="p-2 border-l border-slate-800 pl-4">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">To</label>
+                <input type="text" value={searchDestination} onChange={(e) => setSearchDestination(e.target.value.toUpperCase())} maxLength={3} className="w-full bg-transparent font-mono text-xl font-extrabold text-white focus:outline-none uppercase" required />
+              </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-400 mb-1">TO (Airport)</label>
-              <input
-                type="text"
-                value={searchDestination}
-                maxLength={3}
-                onChange={(e) => setSearchDestination(e.target.value.toUpperCase())}
-                placeholder="DXB"
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-center font-mono font-bold focus:outline-none focus:border-orange-500 uppercase text-white"
-                required
-              />
+            <div className="md:col-span-2 bg-slate-950 border border-slate-800 rounded-2xl p-3.5">
+              <label className="block text-[10px] font-bold text-slate-400 uppercase mb-0.5">Departure</label>
+              <input type="date" value={departDate} onChange={(e) => setDepartDate(e.target.value)} className="w-full bg-transparent text-sm font-bold text-white focus:outline-none" required />
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-400 mb-1">DEPARTURE DATE</label>
-              <input
-                type="date"
-                value={departDate}
-                onChange={(e) => setDepartDate(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm focus:outline-none focus:border-orange-500 text-white"
-                required
-              />
+            <div className={`md:col-span-2 bg-slate-950 border border-slate-800 rounded-2xl p-3.5 ${tripType === 'roundtrip' ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
+              <label className="block text-[10px] font-bold text-slate-400 uppercase mb-0.5">Return</label>
+              <input type="date" value={returnDate} onChange={(e) => setReturnDate(e.target.value)} className="w-full bg-transparent text-sm font-bold text-white focus:outline-none" />
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-400 mb-1">PASSENGERS</label>
-              <select
-                value={passengers}
-                onChange={(e) => setPassengers(Number(e.target.value))}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm focus:outline-none focus:border-orange-500 text-white"
-              >
-                {[1, 2, 3, 4, 5, 6].map((num) => (
-                  <option key={num} value={num}>
-                    {num} {num === 1 ? "Adult" : "Adults"}
-                  </option>
-                ))}
+            <div className="md:col-span-2 bg-slate-950 border border-slate-800 rounded-2xl p-3.5">
+              <label className="block text-[10px] font-bold text-slate-400 uppercase mb-0.5">Travellers</label>
+              <select value={passengers} onChange={(e) => setPassengers(Number(e.target.value))} className="w-full bg-transparent text-sm font-bold text-white focus:outline-none">
+                {[1,2,3,4,5].map(n => <option key={n} value={n} className="bg-slate-900">{n} Traveller{n > 1 ? 's' : ''}</option>)}
               </select>
             </div>
 
-            <div>
-              <button
-                type="submit"
-                className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 font-bold py-3 px-4 rounded-xl transition-all shadow-lg shadow-orange-500/20 cursor-pointer"
-              >
-                Search Flights 🚀
-              </button>
+            <div className="md:col-span-2">
+              <button type="submit" className="w-full bg-orange-500 hover:bg-orange-600 font-extrabold py-4 px-4 rounded-2xl transition shadow-lg shadow-orange-500/25 text-white text-sm">Search Ixigo</button>
             </div>
           </form>
         </div>
 
-        {/* Main Content Grid: Deals on Left (7 cols), Promo Sidebar on Right (5 cols) */}
+        {/* 📊 Matrix & Sidebar Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
-          {/* Left Column: Curated Deals Table */}
           <div className="lg:col-span-8">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
               <div>
-                <h2 className="text-xl font-bold text-white">Top Live Flight Drops</h2>
-                <p className="text-slate-400 text-xs">Updated daily from major Indian hubs</p>
+                <h2 className="text-xl font-black text-white">Automated Price Drops</h2>
+                <p className="text-slate-400 text-xs">Real-time alerts curated from backend bots</p>
               </div>
-
-              {/* Origin Filters */}
               <div className="flex flex-wrap items-center gap-1.5">
                 {INDIAN_ORIGINS.map(({ code }) => (
-                  <button
-                    key={code}
-                    onClick={() => setSelectedOrigin(code)}
-                    className={`px-2.5 py-1 text-xs rounded-lg font-bold transition-all ${
-                      selectedOrigin === code
-                        ? "bg-orange-500 text-white shadow-md shadow-orange-500/20"
-                        : "bg-slate-900 border border-slate-800 text-slate-400 hover:text-white"
-                    }`}
-                  >
-                    {code}
-                  </button>
+                  <button key={code} onClick={() => setSelectedOrigin(code)} className={`px-3 py-1.5 text-xs rounded-xl font-bold transition ${selectedOrigin === code ? "bg-orange-500 text-white" : "bg-slate-900 border border-slate-800 text-slate-400 hover:text-white"}`}>{code}</button>
                 ))}
               </div>
             </div>
 
-            {/* Table Container */}
-            <div className="bg-slate-900/60 border border-slate-800 rounded-2xl overflow-hidden shadow-xl backdrop-blur-sm">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse text-sm">
-                  <thead>
-                    <tr className="border-b border-slate-800 text-slate-400 text-xs uppercase bg-slate-900/90 font-semibold tracking-wider">
-                      <th className="p-4">Route</th>
-                      <th className="p-4">Travel Date</th>
-                      <th className="p-4">Airline</th>
-                      <th className="p-4">Price & Drop</th>
-                      <th className="p-4 text-right">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-800/60">
-                    {loadingDeals ? (
-                      <tr>
-                        <td colSpan={5} className="text-center p-12 text-slate-400">
-                          <span className="animate-pulse">Scanning live flight databases...</span>
+            <div className="bg-slate-900/50 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-slate-800 text-slate-400 text-[10px] uppercase bg-slate-950 font-bold">
+                    <th className="p-4">Save</th>
+                    <th className="p-4">Route</th>
+                    <th className="p-4">Travel Date</th>
+                    <th className="p-4">Price Drop</th>
+                    <th className="p-4 text-right">Book</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/50">
+                  {deals.map((deal, idx) => {
+                    const isSaved = savedDeals.includes(deal.id);
+                    return (
+                      <tr key={idx} className="hover:bg-slate-800/30 transition">
+                        <td className="p-4">
+                          <button onClick={() => toggleSaveDeal(deal.id)} className={`text-lg transition ${isSaved ? "text-red-500 scale-110" : "text-slate-600 hover:text-red-400"}`}>
+                            {isSaved ? "❤️" : "🤍"}
+                          </button>
+                        </td>
+                        <td className="p-4 font-bold text-white">
+                          {deal.origin} <span className="text-orange-500 text-xs">→</span> {deal.destination}
+                        </td>
+                        <td className="p-4 text-slate-300 text-xs font-medium">{deal.travelDate}</td>
+                        <td className="p-4">
+                          <div className="flex flex-col">
+                            <span className="text-[10px] text-slate-500 line-through">₹{deal.originalPrice.toLocaleString()}</span>
+                            <span className="font-extrabold text-emerald-400 text-base">₹{deal.dealPrice.toLocaleString()}</span>
+                          </div>
+                        </td>
+                        <td className="p-4 text-right">
+                          <a href={deal.bookingLink} target="_blank" rel="noopener noreferrer" className="inline-block bg-slate-800 hover:bg-orange-500 hover:text-white border border-slate-700 text-slate-200 font-bold px-4 py-2 rounded-xl text-xs transition">
+                            Book Now
+                          </a>
                         </td>
                       </tr>
-                    ) : deals.length === 0 ? (
-                      <tr>
-                        <td colSpan={5} className="text-center p-12 text-slate-500">
-                          No active deals found for {selectedOrigin} right now.
-                        </td>
-                      </tr>
-                    ) : (
-                      deals.map((deal, idx) => (
-                        <tr key={idx} className="hover:bg-slate-800/40 transition-colors">
-                          <td className="p-4 font-bold text-white">
-                            {deal.origin} <span className="text-orange-500">→</span> {deal.destination}
-                          </td>
-                          <td className="p-4 text-slate-300 text-xs font-medium">
-                            {deal.travelDate}
-                          </td>
-                          <td className="p-4 text-slate-400 text-xs">
-                            {deal.airline}
-                          </td>
-                          <td className="p-4">
-                            <div className="flex flex-col">
-                              <span className="text-[11px] text-slate-500 line-through">
-                                ₹{deal.originalPrice.toLocaleString("en-IN")}
-                              </span>
-                              <span className="font-extrabold text-emerald-400 text-base">
-                                ₹{deal.dealPrice.toLocaleString("en-IN")}
-                              </span>
-                              <span className="text-[10px] font-bold text-orange-400">
-                                Save ₹{deal.priceDrop.toLocaleString("en-IN")} ↓
-                              </span>
-                            </div>
-                          </td>
-                          <td className="p-4 text-right">
-                            <a
-                              href={deal.bookingLink}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-block bg-orange-500 hover:bg-orange-600 text-white font-bold px-4 py-2 rounded-xl text-xs shadow-md transition transform active:scale-95"
-                            >
-                              Book Now
-                            </a>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           </div>
 
-          {/* Right Column: Coupon Codes & Promo Sidebar */}
           <div className="lg:col-span-4">
-            <div className="sticky top-24">
-              <div className="bg-gradient-to-b from-slate-900 to-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-xl">
-                
-                <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
-                  <h3 className="font-bold text-base text-white flex items-center gap-2">
-                    <span>🎟️</span> Live Promo & Bank Offers
-                  </h3>
-                  <span className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-md font-bold uppercase tracking-wider">
-                    Verified
-                  </span>
-                </div>
-
-                <p className="text-xs text-slate-400 mb-5">
-                  Copy these promo codes and apply them at checkout on Ixigo or partner sites for extra instant savings.
-                </p>
-
-                <div className="space-y-3.5">
-                  {PROMO_OFFERS.map((offer, idx) => (
-                    <div 
-                      key={idx} 
-                      className="bg-slate-950/80 border border-slate-800/80 rounded-xl p-3.5 hover:border-slate-700 transition"
-                    >
-                      <div className="flex justify-between items-start mb-1.5">
-                        <span className="text-xs font-semibold text-orange-400">{offer.bank}</span>
-                        <span className="text-[10px] text-slate-500 font-mono">{offer.validity}</span>
-                      </div>
-                      
-                      <p className="text-xs text-slate-300 mb-3 leading-relaxed">
-                        {offer.desc}
-                      </p>
-
-                      <div className="flex items-center justify-between bg-slate-900 border border-dashed border-slate-700 rounded-lg px-3 py-1.5">
-                        <span className="font-mono font-bold text-xs text-emerald-400 tracking-wider">
-                          {offer.code}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => copyToClipboard(offer.code)}
-                          className="text-[11px] font-bold text-orange-400 hover:text-orange-300 transition cursor-pointer"
-                        >
-                          {copiedCode === offer.code ? "Copied! ✅" : "Copy Code 📋"}
-                        </button>
-                      </div>
+            <div className="bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-800 rounded-2xl p-5 shadow-2xl sticky top-24">
+              <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
+                <h3 className="font-extrabold text-sm text-white">🎟️ Active Coupons</h3>
+                <span className="text-[9px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded font-bold uppercase">Verified</span>
+              </div>
+              
+              <div className="space-y-3">
+                {AIRLINE_COUPONS.map((offer, idx) => (
+                  <div key={idx} className="bg-slate-950 border border-slate-800 rounded-xl p-3">
+                    <div className="flex justify-between items-start mb-1">
+                      <span className="text-xs font-bold text-white">{offer.airline}</span>
+                      <span className="text-[10px] font-extrabold text-emerald-400">{offer.discount}</span>
                     </div>
-                  ))}
-                </div>
-
-                {/* Bottom Callout */}
-                <div className="mt-6 bg-orange-500/10 border border-orange-500/20 rounded-xl p-4 text-center">
-                  <p className="text-xs text-orange-300 font-medium">
-                    Want automated alerts for massive price drops? Follow our travel page on Instagram!
-                  </p>
-                </div>
-
+                    <p className="text-[10px] text-slate-400 mb-2">{offer.desc}</p>
+                    <div className="flex items-center justify-between bg-slate-900 border border-dashed border-slate-700 rounded-lg px-2 py-1.5">
+                      <span className="font-mono font-bold text-xs text-orange-400">{offer.code}</span>
+                      <button onClick={() => copyToClipboard(offer.code)} className="text-[10px] font-bold bg-slate-800 hover:bg-slate-700 px-2 py-1 rounded transition text-white">
+                        {copiedCode === offer.code ? "Copied ✅" : "Copy"}
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
-
         </div>
-
       </div>
+
+      {/* 🔐 Authentication Modal */}
+      {showAuthModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md p-6 shadow-2xl relative">
+            <button onClick={() => setShowAuthModal(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white">✕</button>
+            <h2 className="text-2xl font-black text-white mb-2">{authMode === "login" ? "Welcome Back" : "Create Account"}</h2>
+            <p className="text-xs text-slate-400 mb-6">Store user data securely and save your favorite deals.</p>
+            
+            <form onSubmit={handleAuthSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-400 mb-1">Username</label>
+                <input type="text" value={authForm.username} onChange={(e) => setAuthForm({...authForm, username: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white focus:border-orange-500 focus:outline-none" placeholder="johndoe" required />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-400 mb-1">Password</label>
+                <input type="password" value={authForm.password} onChange={(e) => setAuthForm({...authForm, password: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white focus:border-orange-500 focus:outline-none" placeholder="••••••••" required />
+              </div>
+              <button type="submit" className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-xl transition shadow-lg shadow-orange-500/20 mt-2">
+                {authMode === "login" ? "Sign In" : "Sign Up"}
+              </button>
+            </form>
+            
+            <div className="mt-4 text-center">
+              <button onClick={() => setAuthMode(authMode === "login" ? "signup" : "login")} className="text-xs text-orange-400 hover:text-orange-300 font-semibold transition">
+                {authMode === "login" ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
