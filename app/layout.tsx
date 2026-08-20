@@ -37,14 +37,6 @@ export default function RootLayout({
         <header className="flex items-center justify-between p-4 bg-white shadow-sm border-b">
           <div className="flex items-center gap-4">
             {/* Increased Logo Size */}
-            <Image 
-              src="/logo.png" 
-              alt="thinkatrip logo" 
-              width={80} 
-              height={80} 
-              className="object-contain"
-            />
-            
             {/* Brand Name & Caption */}
             <div className="flex flex-col">
               <h1 className="text-3xl font-extrabold tracking-tight text-blue-900">
