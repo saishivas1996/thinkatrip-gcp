@@ -191,9 +191,12 @@ export default function HomePage() {
       {/* 🚀 Navbar */}
       <nav className="border-b border-slate-800/80 bg-[#0f172a]/90 backdrop-blur-md sticky top-0 z-50 px-4 sm:px-8 py-4 flex justify-between items-center shadow-lg">
         <div className="flex items-center gap-3">
-          <span className="text-2xl font-black tracking-tight text-orange-500 flex items-center gap-1.5">
-            <span>✈️</span> Think<span className="text-white">A</span>Trip
-          </span>
+          {/* Ensure your logo image is saved in the 'public' folder of your Next.js app */}
+          <img 
+            src="/think-logo.JPG" 
+            alt="ThinkATrip - Road to Heaven" 
+            className="h-10 w-auto bg-white px-2 py-1 rounded-md" 
+          />
         </div>
         
         <div className="flex items-center gap-4">
