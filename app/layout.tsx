@@ -33,22 +33,6 @@ export default function RootLayout({
           }} 
         />
 
-        {/* Global Navigation Header */}
-        <header className="flex items-center justify-between p-4 bg-white shadow-sm border-b">
-          <div className="flex items-center gap-4">
-            {/* Increased Logo Size */}
-            {/* Brand Name & Caption */}
-            <div className="flex flex-col">
-              <h1 className="text-3xl font-extrabold tracking-tight text-blue-900">
-                thinkatrip
-              </h1>
-              <p className="text-sm font-medium italic text-gray-500">
-                road to heaven
-              </p>
-            </div>
-          </div>
-        </header>
-
         {/* This renders your page.tsx content below the header */}
         <main className="min-h-screen">
           {children}

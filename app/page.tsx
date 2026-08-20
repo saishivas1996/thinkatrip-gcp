@@ -193,7 +193,7 @@ export default function HomePage() {
         <div className="flex items-center gap-3">
           {/* Ensure your logo image is saved in the 'public' folder of your Next.js app */}
           <img 
-            src="/think-logo.JPG" 
+            src="/logo.png" 
             alt="ThinkATrip - Road to Heaven" 
             className="h-10 w-auto bg-white px-2 py-1 rounded-md" 
           />
