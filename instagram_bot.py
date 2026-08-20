@@ -168,3 +168,7 @@ INFO:     Application startup complete.
 ERROR:    [Errno 98] error while attempting to bind on address ('0.0.0.0', 8000): address already in use
 INFO:     Waiting for application shutdown.
 INFO:     Application shutdown complete.
+  File "/home/saishivas1996/thinkatrip-gcp/instagram_bot.py", line 165
+    INFO:     Started server process [87547]
+                      ^^^^^^
+SyntaxError: invalid syntax
