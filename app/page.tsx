@@ -15,14 +15,40 @@ interface Deal {
   bookingLink: string;
 }
 
+// Map standard IATA codes to full airline names
+const AIRLINE_MAP: Record<string, string> = {
+  "6E": "IndiGo",
+  "AI": "Air India",
+  "IX": "Air India Express",
+  "UK": "Vistara",
+  "SG": "SpiceJet",
+  "QP": "Akasa Air",
+  "I5": "AirAsia India",
+  "EK": "Emirates",
+  "EY": "Etihad Airways",
+  "QR": "Qatar Airways",
+  "UL": "SriLankan Airlines",
+  "SQ": "Singapore Airlines",
+  "MH": "Malaysia Airlines",
+  "TG": "Thai Airways",
+  "CX": "Cathay Pacific",
+  "BA": "British Airways",
+  "LH": "Lufthansa",
+  "AF": "Air France",
+  "FZ": "flydubai",
+  "G9": "Air Arabia",
+  "WY": "Oman Air",
+  "KU": "Kuwait Airways",
+  "GF": "Gulf Air",
+  "SV": "Saudia",
+};
+
 export default function HomePage() {
-  // --- 1. Authentication State ---
   const [currentUser, setCurrentUser] = useState<{ username: string } | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "signup">("login");
   const [authForm, setAuthForm] = useState({ username: "", password: "" });
 
-  // --- 2. Search & UI State ---
   const [tripType, setTripType] = useState<"oneway" | "roundtrip">("oneway");
   const [searchOrigin, setSearchOrigin] = useState("VTZ");
   const [searchDestination, setSearchDestination] = useState("BLR");
@@ -31,9 +57,8 @@ export default function HomePage() {
   const [passengers, setPassengers] = useState(1);
   const [travelClass, setTravelClass] = useState("e"); 
   
-  // --- 3. Deals & Wishlist State ---
   const [deals, setDeals] = useState<Deal[]>([]);
-  const [selectedOrigin, setSelectedOrigin] = useState("VTZ");
+  const [selectedOrigin, setSelectedOrigin] = useState("DEL");
   const [loadingDeals, setLoadingDeals] = useState(false);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [savedDeals, setSavedDeals] = useState<string[]>([]); 
@@ -47,7 +72,6 @@ export default function HomePage() {
     { code: "MAA", name: "Chennai" },
   ];
 
-  // REAL-TIME AIRLINE COUPONS (IndiGo, Air India, Scoot, etc.)
   const LIVE_AIRLINE_COUPONS = [
     {
       airline: "IndiGo",
@@ -68,13 +92,6 @@ export default function HomePage() {
       code: "FLYAI",
       discount: "Up to ₹3,000 Off",
       desc: "Instant discount on base fare for domestic & international routes.",
-      color: "bg-red-600"
-    },
-    {
-      airline: "Air India",
-      code: "WELCOMEAI",
-      discount: "Flat 10% Off",
-      desc: "Exclusive welcome discount on your first flight booking directly with AI.",
       color: "bg-red-600"
     },
     {
@@ -188,12 +205,20 @@ export default function HomePage() {
       {/* 🚀 Navbar */}
       <nav className="border-b border-slate-800/80 bg-[#0a1120]/95 backdrop-blur-md sticky top-0 z-50 px-4 sm:px-8 py-3 flex justify-between items-center shadow-lg">
         <div className="flex items-center gap-3">
-          {/* CLEANED LOGO */}
           <img 
-            src="/logo.png" 
-            alt="ThinkATrip" 
-            className="h-12 w-auto object-contain rounded-lg" 
+            src="/think-logo.JPG" 
+            alt="ThinkATrip Logo" 
+            className="h-12 w-auto object-contain rounded-full border border-slate-700/50" 
           />
+          {/* UPDATED LOGO TEXT */}
+          <div className="flex flex-col justify-center">
+            <span className="text-xl sm:text-2xl font-black tracking-tight text-blue-500 leading-none">
+              thinkatrip
+            </span>
+            <span className="text-[10px] sm:text-xs italic text-slate-400 leading-tight">
+              road to heaven
+            </span>
+          </div>
         </div>
         
         <div className="flex items-center gap-4">
@@ -303,6 +328,13 @@ export default function HomePage() {
                 <tbody className="divide-y divide-slate-800/50">
                   {deals.map((deal, idx) => {
                     const isSaved = savedDeals.includes(deal.id);
+                    
+                    // NEW: Extract full airline name and clean flight number
+                    const fullAirlineName = AIRLINE_MAP[deal.airline] || deal.airline;
+                    const cleanFlightNumber = deal.flightNumber.includes('_') 
+                      ? deal.flightNumber.split('_').pop() 
+                      : deal.flightNumber;
+
                     return (
                       <tr key={idx} className="hover:bg-slate-800/20 transition">
                         <td className="p-4">
@@ -317,11 +349,10 @@ export default function HomePage() {
                           <div className="text-[10px] text-slate-400 mt-0.5 font-medium">{deal.travelDate}</div>
                         </td>
                         
-                        {/* FLIGHT NUMBER ADDED HERE */}
                         <td className="p-4">
-                           <div className="text-slate-200 text-xs font-bold">{deal.airline}</div>
+                           <div className="text-slate-200 text-xs font-bold">{fullAirlineName}</div>
                            <div className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded inline-block mt-1">
-                             {deal.flightNumber}
+                             {cleanFlightNumber}
                            </div>
                         </td>
                         
