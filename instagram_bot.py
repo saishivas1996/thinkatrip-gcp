@@ -172,3 +172,7 @@ INFO:     Application shutdown complete.
     INFO:     Started server process [87547]
                       ^^^^^^
 SyntaxError: invalid syntax
+  File "/home/saishivas1996/thinkatrip-gcp/instagram_bot.py", line 165
+    INFO:     Started server process [87547]
+                      ^^^^^^
+SyntaxError: invalid syntax

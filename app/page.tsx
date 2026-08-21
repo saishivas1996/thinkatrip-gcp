@@ -206,14 +206,14 @@ export default function HomePage() {
       <nav className="border-b border-slate-800/80 bg-[#0a1120]/95 backdrop-blur-md sticky top-0 z-50 px-4 sm:px-8 py-3 flex justify-between items-center shadow-lg">
         <div className="flex items-center gap-3">
           <img 
-            src="/think-logo.JPG" 
+            src="/logo.png" 
             alt="ThinkATrip Logo" 
-            className="h-12 w-auto object-contain rounded-full border border-slate-700/50" 
+            className="h-14 w-auto object-contain rounded-full border border-slate-700/50" 
           />
           {/* UPDATED LOGO TEXT */}
           <div className="flex flex-col justify-center">
             <span className="text-xl sm:text-2xl font-black tracking-tight text-blue-500 leading-none">
-              thinkatrip
+              Think a Trip
             </span>
             <span className="text-[10px] sm:text-xs italic text-slate-400 leading-tight">
               road to heaven
